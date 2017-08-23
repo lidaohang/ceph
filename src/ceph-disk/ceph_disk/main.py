@@ -4729,6 +4729,21 @@ def main_trigger(args):
     if is_systemd() and not args.sync:
         # http://www.freedesktop.org/software/systemd/man/systemd-escape.html
         escaped_dev = args.dev[1:].replace('-', '\\x2d')
+
+        # Respect the systemd settings
+        # Do not start services that are not enabled
+        service = 'ceph-osd@{dev}.service'.format(dev=escaped_dev)
+        _, _, r = command(
+            [
+                'systemctl',
+                'is-enabled',
+                service,
+            ]
+        )
+        if r != 0:
+            return
+
+        # Trigger the ceph-disk service
         service = 'ceph-disk@{dev}.service'.format(dev=escaped_dev)
         LOG.info('systemd detected, triggering %s' % service)
         command(
